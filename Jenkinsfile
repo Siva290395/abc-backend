@@ -9,6 +9,30 @@ pipeline {
             }
         }
 
+        // ✅ NEW STAGE - SonarQube Analysis
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                        sonar-scanner \
+                          -Dsonar.projectKey=abc-backend \
+                          -Dsonar.projectName="ABC Backend" \
+                          -Dsonar.sources=. \
+                          -Dsonar.exclusions=node_modules/**,**/*.test.js
+                    '''
+                }
+            }
+        }
+
+        // ✅ NEW STAGE - Quality Gate Check
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 sh 'docker build -t backend-app .'
@@ -24,7 +48,7 @@ pipeline {
         stage('Run New Container') {
             steps {
                 sh 'docker run -d -p 5000:5000 --name backend backend-app'
-                sh  'docker ps'
+                sh 'docker ps'
             }
         }
     }
